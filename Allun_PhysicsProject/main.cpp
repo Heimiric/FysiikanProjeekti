@@ -1,5 +1,5 @@
 #include <Windows.h>
-
+#include "../FysikProject/FysikProject/ShapeMaker.h"
 #include <osg/Node>
 #include <osg/Group>
 #include <osg/Geode>
@@ -9,128 +9,128 @@
 #include <osgViewer/Viewer>
 #include <osg/PositionAttitudeTransform>
 #include <osgGA/TrackballManipulator>
+#include <osg/Drawable>
+#include <osg/Shape>
+#include <osg/Object>
+#include <osg/ShapeDrawable>
+#include <osgGA/GUIEventHandler>
+#include "../FysikProject/FysikProject/InputHandler.h"
+#include "../FysikProject/FysikProject/WorldObject.h"
 
-#include <PxPhysicsAPI.h>
+#include "btBulletDynamicsCommon.h"
+#include "btBulletCollisionCommon.h"
 
-#pragma comment(lib, "PhysX3_x64.lib")
-#pragma comment(lib, "PhysX3Common_x64.lib")
-#pragma comment(lib, "PhysX3Extensions.lib")
-#pragma comment(lib, "PhysXProfileSDK")
 
-static physx::PxDefaultAllocator gDefaultAllocatorCallback;
-static physx::PxDefaultErrorCallback gDefaultErrorCallback;
-static physx::PxSimulationFilterShader gDefaultFilterShader = physx::PxDefaultSimulationFilterShader;
-
-physx::PxScene* gScene = NULL;
-
-void initializePhysX()
-{
-	physx::PxFoundation* physXFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gDefaultAllocatorCallback, gDefaultErrorCallback);
-
-	physx::PxPhysics* gPhysicisSDK = PxCreateBasePhysics(PX_PHYSICS_VERSION, *physXFoundation, physx::PxTolerancesScale());
-
-	PxInitExtensions(*gPhysicisSDK);
-
-	//Scene
-	physx::PxSceneDesc sceneDesc(gPhysicisSDK->getTolerancesScale());
-	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
-
-	if (!sceneDesc.cpuDispatcher)
-	{
-		physx::PxDefaultCpuDispatcher* mCpuDispatcher = physx::PxDefaultCpuDispatcherCreate(1);
-		sceneDesc.cpuDispatcher = mCpuDispatcher;
-	}
-
-	if (!sceneDesc.filterShader)
-		sceneDesc.filterShader = gDefaultFilterShader;
-
-	gScene = gPhysicisSDK->createScene(sceneDesc);
-}
-
+WorldObject *obj;
 int main()
 {
-	/*osgViewer::GraphicsWindow window;
-	window.setWindowName("Physics! It's science bitch!");
-	window.setWindowRectangle(10, 10, 800, 600);*/
+	ShapeMaker maker;
 
-	initializePhysX();
+	InputHandler *handler = new InputHandler();
 
 	osgViewer::Viewer viewer;
+	viewer.addEventHandler(handler);
+
 	viewer.setUpViewOnSingleScreen();
 	osg::Group* root = new osg::Group();
-	osg::Geode* pyramidGeode = new osg::Geode();
-	osg::Geometry* pyramidGeometry = new osg::Geometry();
 
-	pyramidGeode->addDrawable(pyramidGeometry);
-	root->addChild(pyramidGeode);
 
-	osg::Vec3Array* pyramidVertices = new osg::Vec3Array;
-	pyramidVertices->push_back(osg::Vec3(0, 0, 0));			//FL
-	pyramidVertices->push_back(osg::Vec3(10, 0, 0));		//FR
-	pyramidVertices->push_back(osg::Vec3(10, 10, 0));		//BR
-	pyramidVertices->push_back(osg::Vec3(0, 10, 0));		//BL
-	pyramidVertices->push_back(osg::Vec3(5, 5, 10));		//P
+	// Build the broadphase
+	btBroadphaseInterface* broadphase = new btDbvtBroadphase();
 
-	pyramidGeometry->setVertexArray(pyramidVertices);
+	// Set up the collision configuration and dispatcher
+	btDefaultCollisionConfiguration* collisionConfiguration = new btDefaultCollisionConfiguration();
+	btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfiguration);
 
-	osg::DrawElementsUInt* pyramidBase = new osg::DrawElementsUInt(osg::PrimitiveSet::QUADS, 0);
-	pyramidBase->push_back(3);
-	pyramidBase->push_back(2);
-	pyramidBase->push_back(1);
-	pyramidBase->push_back(0);
-	pyramidGeometry->addPrimitiveSet(pyramidBase);
+	// The actual physics solver
+	btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver;
 
-	osg::DrawElementsUInt* pyramidFaceOne = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, 0);
-	pyramidFaceOne->push_back(0);
-	pyramidFaceOne->push_back(1);
-	pyramidFaceOne->push_back(4);
-	pyramidGeometry->addPrimitiveSet(pyramidFaceOne);
+	// The world.
+	btDiscreteDynamicsWorld* dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+	dynamicsWorld->setGravity(btVector3(0, -9.81, 0));
 
-	osg::DrawElementsUInt* pyramidFaceTwo = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, 0);
-	pyramidFaceTwo->push_back(1);
-	pyramidFaceTwo->push_back(2);
-	pyramidFaceTwo->push_back(4);
-	pyramidGeometry->addPrimitiveSet(pyramidFaceTwo);
-	
-	osg::DrawElementsUInt* pyramidFaceThree = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, 0);
-	pyramidFaceThree->push_back(2);
-	pyramidFaceThree->push_back(3);
-	pyramidFaceThree->push_back(4);
-	pyramidGeometry->addPrimitiveSet(pyramidFaceThree);
-	
-	osg::DrawElementsUInt* pyramidFaceFour = new osg::DrawElementsUInt(osg::PrimitiveSet::TRIANGLES, 0);
-	pyramidFaceFour->push_back(3);
-	pyramidFaceFour->push_back(0);
-	pyramidFaceFour->push_back(4);
-	pyramidGeometry->addPrimitiveSet(pyramidFaceFour);
 
-	osg::Vec4Array* colors = new osg::Vec4Array;
-	colors->push_back(osg::Vec4(1.0f, 0.0f, 0.0f, 1.0f));
-	colors->push_back(osg::Vec4(0.0f, 1.0f, 0.0f, 1.0f));
-	colors->push_back(osg::Vec4(0.0f, 0.0f, 1.0f, 1.0f));
-	colors->push_back(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
-	colors->push_back(osg::Vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	//Creating sphere
+	osg::Geode *sphereGeode = maker.makeGeodeWithShape(new osg::Sphere(osg::Vec3(0, 0, 0), 1.0f), osg::Vec4(1, 0, 0, 1));
+	btCollisionShape* fallShape = new btSphereShape(1);
 
-	pyramidGeometry->setColorArray(colors);
-	pyramidGeometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
+	//Creating plane
+	osg::Geode *planeGeode = maker.makeGeodeWithShape(new osg::Box(osg::Vec3(0, 0, -0.1), 100.f, 100.f, 0.1f), osg::Vec4(0, 0, 1, 1));
+	root->addChild(planeGeode);
+	btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0, 1, 0), 1.f);
 
-	osg::PositionAttitudeTransform* pyramidTwoXForm = new osg::PositionAttitudeTransform();
 
-	root->addChild(pyramidTwoXForm);
-	pyramidTwoXForm->addChild(pyramidGeode);
 
-	osg::Vec3 pyramidTwoPosition(15, 0, 0);
-	pyramidTwoXForm->setPosition(pyramidTwoPosition);
+	btDefaultMotionState* groundMotionState =
+		new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, -1, 0)));
 
-	root->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
+
+	btRigidBody::btRigidBodyConstructionInfo
+		groundRigidBodyCI(0, groundMotionState, groundShape, btVector3(0, 0, 0));
+	btRigidBody* groundRigidBody = new btRigidBody(groundRigidBodyCI);
+
+	dynamicsWorld->addRigidBody(groundRigidBody);
+
+	btDefaultMotionState* fallMotionState =
+		new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 0, 0)));
+
+	btScalar mass = 1;
+	btVector3 fallInertia(0, 0, 0);
+	fallShape->calculateLocalInertia(mass, fallInertia);
+
+	btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallShape, fallInertia);
+
+	btRigidBody* fallRigidBody = new btRigidBody(fallRigidBodyCI);
+	dynamicsWorld->addRigidBody(fallRigidBody);
+
+	osg::PositionAttitudeTransform *transform = new osg::PositionAttitudeTransform;
+	transform->addChild(sphereGeode);
+	root->addChild(transform);
+
+
+	root->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::ON);
+
+
+	btTransform trans;
+	fallRigidBody->getMotionState()->getWorldTransform(trans);
+
+	transform->setPosition(osg::Vec3(0, 0, trans.getOrigin().getY()));
+
+
+	fallRigidBody->applyImpulse(btVector3(0, 10, 2), btVector3(0, 0, 0));
+	fallRigidBody->setRestitution(0.5);
+	groundRigidBody->setRestitution(1.0);
+
 
 	viewer.setSceneData(root);
-
 	viewer.setCameraManipulator(new osgGA::TrackballManipulator());
 	viewer.realize();
 
+	bool doneOnce = false;
+
 	while (!viewer.done())
 	{
+		dynamicsWorld->stepSimulation(1 / 60.f, 10);
+
+
+		if (handler->_spawnObject)
+		{
+			osg::Vec3 camRotation(0, 0, 0);
+			osg::Vec3 camPos(10,0,0);
+
+			handler->spawn(dynamicsWorld, root, camPos, camRotation);
+
+		}
+
+		handler->updateObjects();
+		fallRigidBody->getMotionState()->getWorldTransform(trans);
+
+		if (!doneOnce)
+		{
+			
+			doneOnce = true;
+		}
+
 		viewer.frame();
 	}
 
