@@ -3,6 +3,7 @@
 #include <iostream>
 #include <osgGA/GUIEventHandler>
 #include "../FysikProject/WorldObject.h"
+#include <random>
 
 class InputHandler : public osgGA::GUIEventHandler
 {

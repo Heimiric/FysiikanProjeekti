@@ -41,3 +41,17 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+*.exe
+FysikProject/Debug/FysikProject.ilk
+*.sdf
+FysikProject/FysikProject.opensdf
+*.sdf
+FysikProject/FysikProject.v12.suo
+*.log
+*.lastbuildstate
+FysikProject/FysikProject/Debug/FysikProject.tlog/link.command.1.tlog
+*.cache
+FysikProject/FysikProject/Debug/InputHandler.obj
+*.idb
+FysikProject/FysikProject/Debug/vc120.pdb
+*.filters

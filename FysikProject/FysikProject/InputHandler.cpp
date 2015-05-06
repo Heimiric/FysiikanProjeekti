@@ -2,6 +2,7 @@
 
 bool InputHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& aa)
 {
+
 	switch (ea.getEventType())
 	{
 	case(osgGA::GUIEventAdapter::KEYDOWN) :
@@ -9,6 +10,7 @@ bool InputHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdap
 		switch (ea.getKey())
 		{
 		case 's':
+			std::srand(time(NULL));
 			_spawnObject = true;
 			std::cout << " object spawned" << std::endl;
 			return false;
@@ -26,8 +28,19 @@ void InputHandler::spawn(btDiscreteDynamicsWorld *world, osg::Group *root, osg::
 {
 	calcViewTransformation(camMatrix);
 
-	_objects.push_back(new WorldObject(new osg::Box(osg::Vec3(0, 0, 0), 10.0f, 10.0f,10.0f), 10.0f,
-		&_viewTransform, world, root));
+
+	int box = std::rand() % 2;
+
+	if (box)
+	{
+		_objects.push_back(new WorldObject(new osg::Box(osg::Vec3(0, 0, 0), 10.0f, 10.0f, 10.0f), 10.0f,
+			&_viewTransform, world, root));
+	}
+	else if (!box)
+	{
+		_objects.push_back(new WorldObject(new osg::Sphere(osg::Vec3(0, 0, 0), 10.0f), 10.0f,
+			&_viewTransform, world, root));
+	}
 	_spawnObject = false;
 
 }
