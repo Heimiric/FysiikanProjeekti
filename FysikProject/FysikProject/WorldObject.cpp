@@ -34,12 +34,13 @@ void WorldObject::initializePhysics(btTransform* startState, btDynamicsWorld *wo
 
 	if (shapeString == "Box")
 	{
-		_collisionShape = new btBoxShape(btVector3(_size, _size, _size));
+		_collisionShape = new btBoxShape(btVector3(_size*0.5f, _size*0.5f, _size*0.5f));
 	}
 
 	_mass = _size;
-	_inertia = btVector3(0, 0, 0);
+	_inertia = btVector3(0.1, 0.1, 0.1);
 	_collisionShape->calculateLocalInertia(_mass,_inertia);
+
 
 	_startState = new btDefaultMotionState(*startState);
 	_constructionInfo = new btRigidBody::btRigidBodyConstructionInfo(_mass, _startState, _collisionShape, _inertia);
@@ -48,6 +49,10 @@ void WorldObject::initializePhysics(btTransform* startState, btDynamicsWorld *wo
 
 	_rigidBody->setRestitution(0.5);
 	_currentTransform = &_rigidBody->getWorldTransform();
+	btVector3 ble(0, 0, 0);
+	
+
+	_rigidBody->applyImpulse(btVector3(-_currentTransform->getOrigin()), ble);
 }
 
 void WorldObject::updateRender()
@@ -58,9 +63,10 @@ void WorldObject::updateRender()
 									_currentTransform->getOrigin().getX(),
 									_currentTransform->getOrigin().getY()));
 
+
 	_drawableTransform->setAttitude(osg::Quat(_currentTransform->getRotation().z(),
-												_currentTransform->getRotation().x(),
-												_currentTransform->getRotation().y(), 1));
+												_currentTransform->getRotation().y(),
+												_currentTransform->getRotation().x(), _currentTransform->getRotation().w()));
 }
 
 WorldObject::~WorldObject()

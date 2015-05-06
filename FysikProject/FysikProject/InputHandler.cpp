@@ -8,9 +8,9 @@ bool InputHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdap
 	{
 		switch (ea.getKey())
 		{
-		case ' ':
+		case 's':
 			_spawnObject = true;
-			std::cout << " spacebar pressed" << std::endl;
+			std::cout << " object spawned" << std::endl;
 			return false;
 			break;
 		default:
@@ -22,21 +22,34 @@ bool InputHandler::handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdap
 	}
 }
 
-void InputHandler::spawn(btDiscreteDynamicsWorld *world, osg::Group *root, osg::Vec3 camPos, osg::Vec3 camRotation)
+void InputHandler::spawn(btDiscreteDynamicsWorld *world, osg::Group *root, osg::Matrixd camMatrix)
 {
-	calcViewTransformation(camPos, camRotation);
+	calcViewTransformation(camMatrix);
 
-	_objects.push_back(new WorldObject(new osg::Sphere(osg::Vec3(0, 0, 0), 1.0), 1.0f,
+	_objects.push_back(new WorldObject(new osg::Box(osg::Vec3(0, 0, 0), 10.0f, 10.0f,10.0f), 10.0f,
 		&_viewTransform, world, root));
 	_spawnObject = false;
+
 }
 
-void InputHandler::calcViewTransformation(osg::Vec3 camPos, osg::Vec3 camRotation)
+void InputHandler::calcViewTransformation(osg::Matrixd camMatrix)
 {
-	btVector3 origin(camPos.z(), camPos.x(), camPos.y());
-	btQuaternion rotation(camRotation.z(), camRotation.x(), camRotation.y());
-	_viewTransform.setOrigin(origin);
-	_viewTransform.setRotation(rotation);
+	float z = camMatrix.getTrans().z();
+	float y = camMatrix.getTrans().y();
+	float x = camMatrix.getTrans().x();
+
+
+	osg::Quat camQuat = camMatrix.getRotate();
+	float rotZ = camQuat.z();
+	float rotX = camQuat.x();
+	float rotY = camQuat.y();
+
+	btVector3 pos(y, -z, x);
+	btQuaternion rot(rotZ, rotY, rotX);
+
+	_viewTransform.setOrigin(pos);
+	_viewTransform.setRotation(rot);
+
 }
 
 void InputHandler::updateObjects()

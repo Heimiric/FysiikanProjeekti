@@ -50,10 +50,6 @@ int main()
 	dynamicsWorld->setGravity(btVector3(0, -9.81, 0));
 
 
-	//Creating sphere
-	osg::Geode *sphereGeode = maker.makeGeodeWithShape(new osg::Sphere(osg::Vec3(0, 0, 0), 1.0f), osg::Vec4(1, 0, 0, 1));
-	btCollisionShape* fallShape = new btSphereShape(1);
-
 	//Creating plane
 	osg::Geode *planeGeode = maker.makeGeodeWithShape(new osg::Box(osg::Vec3(0, 0, -0.1), 100.f, 100.f, 0.1f), osg::Vec4(0, 0, 1, 1));
 	root->addChild(planeGeode);
@@ -76,15 +72,10 @@ int main()
 
 	btScalar mass = 1;
 	btVector3 fallInertia(0, 0, 0);
-	fallShape->calculateLocalInertia(mass, fallInertia);
 
-	btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallShape, fallInertia);
-
-	btRigidBody* fallRigidBody = new btRigidBody(fallRigidBodyCI);
-	dynamicsWorld->addRigidBody(fallRigidBody);
 
 	osg::PositionAttitudeTransform *transform = new osg::PositionAttitudeTransform;
-	transform->addChild(sphereGeode);
+
 	root->addChild(transform);
 
 
@@ -92,13 +83,8 @@ int main()
 
 
 	btTransform trans;
-	fallRigidBody->getMotionState()->getWorldTransform(trans);
-
 	transform->setPosition(osg::Vec3(0, 0, trans.getOrigin().getY()));
 
-
-	fallRigidBody->applyImpulse(btVector3(0, 10, 2), btVector3(0, 0, 0));
-	fallRigidBody->setRestitution(0.5);
 	groundRigidBody->setRestitution(1.0);
 
 
@@ -108,30 +94,39 @@ int main()
 
 	bool doneOnce = false;
 
+	osg::Camera *prevCamera = new osg::Camera;
+
+
+	osgGA::CameraManipulator *camManipul = viewer.getCameraManipulator();
+	camManipul->setAutoComputeHomePosition(false);
+
+
+	osg::Vec3d eye;
+	osg::Vec3d center;
+	osg::Vec3d up;
+	osg::Matrix camMatrix;
+	bool spawned = false;
+
 	while (!viewer.done())
 	{
-		dynamicsWorld->stepSimulation(1 / 60.f, 10);
+		dynamicsWorld->stepSimulation(1 / 30.f, 10);
 
 
 		if (handler->_spawnObject)
 		{
-			osg::Vec3 camRotation(0, 0, 0);
-			osg::Vec3 camPos(10,0,0);
+	
+			camMatrix = viewer.getCamera()->getViewMatrix();
+			camMatrix = camManipul->getMatrix();
 
-			handler->spawn(dynamicsWorld, root, camPos, camRotation);
+			handler->spawn(dynamicsWorld, root, camMatrix);
 
 		}
 
 		handler->updateObjects();
-		fallRigidBody->getMotionState()->getWorldTransform(trans);
-
-		if (!doneOnce)
-		{
-			
-			doneOnce = true;
-		}
 
 		viewer.frame();
+
+
 	}
 
 	return 0;
